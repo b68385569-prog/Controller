@@ -1,13 +1,16 @@
-// Ye code 11 seconds tak rate ko 100 par lock kar dega
-let timer = 11;
-let locker = setInterval(() => {
-    document.querySelectorAll('.bookmarker .bet-rate').forEach(el => {
-        el.innerText = '100.0';
-        el.style.color = 'red'; // Taaki pata chale hack active hai
-    });
-    timer -= 0.1;
-    if(timer <= 0) {
-        clearInterval(locker);
-        location.reload(); // 11s baad bnd
-    }
-}, 100);
+{
+  "name": "ghost-control-v11-8-2",
+  "version": "1.1.0",
+  "description": "11s Speed Strike Injector",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js" 
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
