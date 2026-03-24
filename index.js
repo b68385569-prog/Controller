@@ -1,55 +1,64 @@
 const axios = require('axios');
 const express = require('express');
+const path = require('path');
 const app = express();
 app.use(express.json());
 
-app.post('/execute', async (req, res) => {
-    // Dashboard se aane wala data
-    const { customApi, cookie, marketId, selectionId, stake } = req.body;
+// --- YE SECTION DASHBOARD DIKHAYEGA ---
+app.get('/', (req, res) => {
+    res.send(`
+        <body style="background:#000; color:#fff; font-family:sans-serif; text-align:center; padding:50px;">
+            <h1 style="color:#ff4d4d;">🚀 MARKET DOMINATOR v4.2</h1>
+            <div style="background:#111; padding:20px; border:1px solid #333; display:inline-block; border-radius:10px;">
+                <input id="api" placeholder="OPTIONAL CUSTOM API" style="width:300px; padding:10px; margin:5px;"><br>
+                <input id="cookie" placeholder="COOKIE ACCESS" style="width:300px; padding:10px; margin:5px;"><br>
+                <input id="mId" placeholder="MARKET ID" style="width:145px; padding:10px; margin:5px;">
+                <input id="sId" placeholder="SELECTION ID" style="width:145px; padding:10px; margin:5px;"><br>
+                <button onclick="run()" style="background:#ff4d4d; color:#fff; border:none; padding:15px 30px; cursor:pointer; margin-top:20px; font-weight:bold;">EXECUTE INJECTION</button>
+            </div>
+            <pre id="log" style="margin-top:20px; color:#0f0;"></pre>
+            <script>
+                async function run() {
+                    const log = document.getElementById('log');
+                    log.innerText = "Processing...";
+                    const res = await fetch('/execute', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            customApi: document.getElementById('api').value,
+                            cookie: document.getElementById('cookie').value,
+                            marketId: document.getElementById('mId').value,
+                            selectionId: document.getElementById('sId').value
+                        })
+                    });
+                    const data = await res.json();
+                    log.innerText = JSON.stringify(data, null, 2);
+                }
+            </script>
+        </body>
+    `);
+});
 
-    // Wizardnew/Darkexch ke liye 'Default API' agar optional khali ho toh
+// --- YE SECTION ATTACK EXECUTE KAREGA ---
+app.post('/execute', async (req, res) => {
+    const { customApi, cookie, marketId, selectionId } = req.body;
     const finalApi = customApi || `https://alidata.wizardnew.com/api/MatchOdds/GetOddslite/4/${marketId}/35401953`;
 
     const headers = {
         'authority': 'alidata.wizardnew.com',
         'accept': 'application/json, text/javascript, */*; q=0.01',
-        'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
-        'origin': 'https://darkexch9.com',
-        'referer': 'https://darkexch9.com/',
+        'referer': 'https://wizardnew.com/',
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'sec-ch-ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
-        'sec-ch-ua-platform': '"Windows"',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'cross-site',
-        'x-requested-with': 'XMLHttpRequest',
-        'cookie': cookie // Yahan dashboard wali fresh cookie jayegi
+        'cookie': cookie
     };
 
     try {
-        console.log("Hitting API:", finalApi);
-        
-        const response = await axios.get(finalApi, { headers, timeout: 5000 });
-        
-        res.status(200).json({
-            status: "SUCCESS",
-            message: "Injection Active",
-            market: marketId,
-            apiUsed: finalApi,
-            data: response.data
-        });
-
-    } catch (error) {
-        console.error("Error Status:", error.response ? error.response.status : "No Response");
-        
-        res.status(error.response ? error.response.status : 500).json({
-            status: "FAILED",
-            error: error.message,
-            code: error.response ? error.response.status : 404,
-            hint: "Check if Cookie is fresh or IP is blocked"
-        });
+        const response = await axios.get(finalApi, { headers });
+        res.json({ status: "SUCCESS", data: response.data });
+    } catch (err) {
+        res.json({ status: "FAILED", error: err.message, code: err.response ? err.response.status : 404 });
     }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`v4.2 Wizard Server Live on Port ${PORT}`));
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log('Server is running!'));
