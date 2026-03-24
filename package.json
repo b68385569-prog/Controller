@@ -1,16 +1,13 @@
 {
   "name": "ghost-controller",
   "version": "1.0.0",
-  "description": "Sniper Edition",
+  "description": "Ghost Injector v11.3",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "axios": "^1.4.0"
-  },
-  "engines": {
-    "node": "18.x"
+    "axios": "^1.6.0"
   }
 }
